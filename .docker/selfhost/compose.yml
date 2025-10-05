@@ -14,8 +14,10 @@ services:
         condition: service_completed_successfully
     volumes:
       # custom configurations
-      - ${UPLOAD_LOCATION}:/root/.affine/storage
-      - ${CONFIG_LOCATION}:/root/.affine/config
+      volumes:
+        - /c/Users/timhe/.affine/self-host/storage:/root/.affine/storage
+        - /c/Users/timhe/.affine/self-host/config:/root/.affine/config
+
     env_file:
       - .env
     environment:
