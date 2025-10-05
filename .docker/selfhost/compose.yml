@@ -4,22 +4,12 @@ services:
     image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
     container_name: affine_server
     ports:
-      - '${PORT:-3010}:3010'
+      - "${PORT:-3010}:3010"
     depends_on:
       redis:
         condition: service_healthy
-      services:
       postgres:
-        image: pgvector/pgvector:pg${DB_VERSION:-16}
-        ports:
-          - "5432:5432"
-        environment:
-          POSTGRES_PASSWORD: ${DB_PASSWORD}
-          POSTGRES_USER: ${DB_USERNAME}
-          POSTGRES_DB: ${DB_DATABASE_NAME}
-        volumes:
-          - postgres_data:/var/lib/postgresql/data
-
+        condition: service_healthy
       affine_migration:
         condition: service_completed_successfully
     volumes:
@@ -38,10 +28,9 @@ services:
     image: ghcr.io/toeverything/affine:${AFFINE_REVISION:-stable}
     container_name: affine_migration_job
     volumes:
-      # custom configurations
       - ${UPLOAD_LOCATION}:/root/.affine/storage
       - ${CONFIG_LOCATION}:/root/.affine/config
-    command: ['sh', '-c', 'node ./scripts/self-host-predeploy.js']
+    command: ["sh", "-c", "node ./scripts/self-host-predeploy.js"]
     env_file:
       - .env
     environment:
@@ -55,33 +44,34 @@ services:
         condition: service_healthy
 
   redis:
-    image: redis
+    image: redis:latest
     container_name: affine_redis
     healthcheck:
-      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
   postgres:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg${DB_VERSION:-16}
     container_name: affine_postgres
+    ports:
+      - "5432:5432"
     volumes:
-      postgres_data:
-
+      - /c/Users/timhe/.affine/self-host/postgres/pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE:-affine}
-      POSTGRES_INITDB_ARGS: '--data-checksums'
-      # you better set a password for you database
-      # or you may add 'POSTGRES_HOST_AUTH_METHOD=trust' to ignore postgres security policy
+      POSTGRES_INITDB_ARGS: "--data-checksums"
       POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
-      test:
-        ['CMD', 'pg_isready', '-U', "${DB_USERNAME}", '-d', "${DB_DATABASE:-affine}"]
+      test: ["CMD", "pg_isready", "-U", "${DB_USERNAME}", "-d", "${DB_DATABASE:-affine}"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+volumes:
+  postgres_data:
