@@ -8,8 +8,18 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      services:
       postgres:
-        condition: service_healthy
+        image: pgvector/pgvector:pg${DB_VERSION:-16}
+        ports:
+          - "5432:5432"
+        environment:
+          POSTGRES_PASSWORD: ${DB_PASSWORD}
+          POSTGRES_USER: ${DB_USERNAME}
+          POSTGRES_DB: ${DB_DATABASE_NAME}
+        volumes:
+          - postgres_data:/var/lib/postgresql/data
+
       affine_migration:
         condition: service_completed_successfully
     volumes:
@@ -58,7 +68,8 @@ services:
     image: pgvector/pgvector:pg16
     container_name: affine_postgres
     volumes:
-      - ${DB_DATA_LOCATION}:/var/lib/postgresql/data
+      postgres_data:
+
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
