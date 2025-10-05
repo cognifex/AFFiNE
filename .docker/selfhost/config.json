@@ -1,6 +1,20 @@
 {
   "$schema": "https://github.com/toeverything/affine/releases/latest/download/config.schema.json",
   "server": {
-    "name": "AFFiNE Self Hosted Server"
+    "name": "VHS Lahnstein"
+  },
+  "copilot": {
+    "enabled": true,
+    "providers": {
+      "openai": {
+        "apiKey": "",
+        "baseUrl": "https://api.openai.com/v1"
+      },
+      "gemini": {
+        "apiKey": "AlzaSyAAMJy66oGXa7CtzA0YVBQaUrZA6NOm7DM",
+        "baseUrl": "https://generativelanguage.googleapis.com/v1beta"
+      }
+    },
+    "defaultProvider": "gemini"
   }
 }
