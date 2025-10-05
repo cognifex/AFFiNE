@@ -13,6 +13,7 @@ COPY packages ./packages
 COPY tools ./tools
 COPY scripts ./scripts
 COPY docs ./docs
+COPY tests ./tests
 COPY tsconfig*.json ./
 COPY vitest.config.ts ./
 COPY vitest.workspace.ts ./
