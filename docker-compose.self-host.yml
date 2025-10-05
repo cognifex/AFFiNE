@@ -1,0 +1,69 @@
+name: affine
+services:
+  affine:
+    image: ghcr.io/cognifex/affine:latest
+    container_name: affine_server
+    ports:
+      - "3010:3010"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "const net=require('net');const s=net.connect({host:'127.0.0.1',port:3010},()=>{s.end();process.exit(0);});s.on('error',()=>process.exit(1));"
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      affine_migration:
+        condition: service_completed_successfully
+    volumes:
+      - /c/Users/timhe/.affine/self-host/storage:/root/.affine/storage
+      - /c/Users/timhe/.affine/self-host/config:/root/.affine/config
+    env_file:
+      - .env
+    environment:
+      - AFFINE_SERVER_HOST=0.0.0.0
+      - REDIS_SERVER_HOST=redis
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - AFFINE_INDEXER_ENABLED=false
+    restart: unless-stopped
+
+  affine_migration:
+    image: ghcr.io/toeverything/affine:stable
+    container_name: affine_migration_job
+    command: ["sh", "-c", "node ./scripts/self-host-predeploy.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - REDIS_SERVER_HOST=redis
+
+  redis:
+    image: redis:latest
+    container_name: affine_redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: affine_postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - /c/Users/timhe/.affine/self-host/postgres/pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE:-affine}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
