@@ -749,9 +749,7 @@ export class OpenAIProvider extends CopilotProvider<OpenAIConfig> {
           model: modelInstance,
           prompt,
           providerOptions: {
-            openai: {
-              quality: options.quality || null,
-            },
+            openai: {},
           },
         });
 
