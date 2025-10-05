@@ -1,7 +1,7 @@
 name: affine
 services:
   affine:
-    image: ghcr.io/cognifex/affine:${AFFINE_REVISION:-latest}
+    image: ghcr.io/cognifex/affine:latest
     container_name: affine_server
     ports:
       - "${PORT:-3010}:3010"
@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
 
   affine_migration:
-    image: ghcr.io/cognifex/affine:${AFFINE_REVISION:-latest}
+    image: ghcr.io/cognifex/affine:latest
     container_name: affine_migration_job
     volumes:
       - /c/Users/timhe/.affine/self-host/storage:/root/.affine/storage
