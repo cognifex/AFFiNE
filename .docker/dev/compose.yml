@@ -2,7 +2,7 @@ name: affine_dev_services
 services:
   postgres:
     env_file:
-      - .env
+      - https://github.com/cognifex/AFFiNE/blob/canary/.docker/dev/.env
     image: pgvector/pgvector:pg${DB_VERSION:-16}
     ports:
       - 5432:5432
