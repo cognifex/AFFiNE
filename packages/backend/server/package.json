@@ -8,6 +8,8 @@
     "run-test": "./scripts/run-test.ts"
   },
   "scripts": {
+    "build:static": "r ./scripts/build-static.ts",
+    "prebuild": "yarn build:static",
     "build": "affine bundle -p @affine/server",
     "dev": "nodemon ./src/index.ts",
     "dev:mail": "email dev -d src/mails",
