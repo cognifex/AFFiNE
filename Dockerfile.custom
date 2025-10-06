@@ -3,32 +3,38 @@
 FROM node:20-bookworm AS builder
 WORKDIR /app
 
-RUN corepack enable \
- && corepack prepare yarn@4.10.3 --activate
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    libssl-dev \
+    libvips-dev \
+    pkg-config \
+    python3 \
+  && rm -rf /var/lib/apt/lists/*
 
-COPY package.json yarn.lock .yarnrc.yml ./
-COPY .yarn/ ./.yarn/
-COPY blocksuite ./blocksuite
-COPY packages ./packages
-COPY tools ./tools
-COPY scripts ./scripts
-COPY docs ./docs
-COPY tests ./tests
-COPY tsconfig*.json ./
-COPY vitest.config.ts ./
-COPY vitest.workspace.ts ./
-COPY nyc.config.js ./
-COPY oxlint.json ./
+RUN corepack enable \
+  && corepack prepare yarn@4.10.3 --activate
+
 COPY rust-toolchain.toml ./
-COPY Cargo.toml Cargo.lock ./
-COPY README.md ./README.md
-COPY LICENSE ./LICENSE
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
+    sh -s -- -y --profile minimal --default-toolchain none \
+  && . "$HOME/.cargo/env" \
+  && rustup toolchain install "$(sed -n 's/^channel = \"\(.*\)\"/\1/p' rust-toolchain.toml)" --profile minimal \
+  && rustup default "$(sed -n 's/^channel = \"\(.*\)\"/\1/p' rust-toolchain.toml)"
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+COPY . .
 
 ENV YARN_NODE_LINKER=node-modules
+ENV HUSKY=0
 
 RUN yarn install --immutable
 
-RUN yarn workspace @affine/server-native build -- --platform
+RUN yarn workspace @affine/server-native build
 RUN yarn workspace @affine/reader build
 RUN yarn workspace @affine/server prisma generate
 RUN yarn workspace @affine/server build
@@ -38,6 +44,13 @@ RUN yarn workspace @affine/server prisma generate
 
 FROM node:20-slim AS runner
 WORKDIR /app/packages/backend/server
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libvips42 \
+    openssl \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 ENV AFFINE_SERVER_HOST=0.0.0.0
