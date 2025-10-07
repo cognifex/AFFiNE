@@ -223,12 +223,22 @@ export class DocRendererController {
       assets.css = assets.css.map(path => publicPath + path);
 
       return assets;
-    } catch (e) {
-      if (env.prod) {
-        throw e;
-      } else {
+    } catch (error) {
+      const err = error as NodeJS.ErrnoException;
+
+      if (err.code === 'ENOENT') {
+        this.logger.warn(
+          `HTML assets manifest not found at ${manifestPath}, falling back to defaults.`
+        );
         return defaultAssets;
       }
+
+      if (env.prod) {
+        throw err;
+      }
+
+      this.logger.error('Failed to load HTML assets manifest', err);
+      return defaultAssets;
     }
   }
 }
