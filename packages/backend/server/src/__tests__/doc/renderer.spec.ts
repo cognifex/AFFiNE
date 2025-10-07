@@ -1,4 +1,5 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { Package } from '@affine-tools/utils/workspace';
@@ -8,6 +9,8 @@ import ava from 'ava';
 import request from 'supertest';
 
 import { createTestingApp } from '../utils';
+import { DocRendererController } from '../../core/doc-renderer/controller';
+import { NodeEnv } from '../../env';
 
 const test = ava as TestFn<{
   app: INestApplication;
@@ -84,3 +87,32 @@ test.skip('should render correct mobile html', async t => {
 });
 
 test.todo('should render correct page preview');
+
+test.serial(
+  'should fall back to default assets when manifest is missing',
+  t => {
+    const tmpStatic = mkdtempSync(path.join(tmpdir(), 'doc-renderer-'));
+    const originalNodeEnv = env.NODE_ENV;
+    env.NODE_ENV = NodeEnv.Production;
+
+    try {
+      const controller = new DocRendererController(
+        {} as any,
+        {} as any,
+        { server: { path: '/' } } as any
+      );
+
+      const assets = (controller as any).readHtmlAssets(tmpStatic);
+
+      t.deepEqual(assets, {
+        css: [],
+        js: [],
+        publicPath: '/',
+        gitHash: '',
+        description: '',
+      });
+    } finally {
+      env.NODE_ENV = originalNodeEnv;
+    }
+  }
+);
