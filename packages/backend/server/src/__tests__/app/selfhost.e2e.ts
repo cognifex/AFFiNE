@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { Controller, Post, RawBody } from '@nestjs/common';
@@ -12,7 +12,7 @@ import { Public } from '../../core/auth';
 import { ServerService } from '../../core/config';
 import { createTestingApp, type TestingApp } from '../utils';
 
-const test = ava as TestFn<{
+const test = ava.serial as TestFn<{
   app: TestingApp;
   db: PrismaClient;
 }>;
@@ -171,6 +171,34 @@ test('should allow visiting all pages if initialized', async t => {
   }
 
   t.pass();
+});
+
+test('should return fallback selfhost page when static html is missing', async t => {
+  await t.context.db.user.create({
+    data: {
+      name: 'test',
+      email: 'test@affine.pro',
+    },
+  });
+
+  const staticRoot = path.join(env.projectRoot, 'static');
+  const filePath = path.join(staticRoot, 'selfhost.html');
+  const original = readFileSync(filePath, 'utf-8');
+
+  rmSync(filePath);
+
+  try {
+    const res = await request(t.context.app.getHttpServer())
+      .get('/')
+      .expect(200);
+
+    t.true(
+      res.text.includes('AFFiNE static assets are missing.'),
+      'Fallback content not returned when static html is missing'
+    );
+  } finally {
+    writeFileSync(filePath, original);
+  }
 });
 
 test('should allow visiting setup page if not initialized', async t => {

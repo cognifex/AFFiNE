@@ -1,8 +1,9 @@
 import { join } from 'node:path';
 
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import type { Application } from 'express';
+import type { Response } from 'express';
 import { static as serveStatic } from 'express';
 import isMobile from 'is-mobile';
 
@@ -11,11 +12,104 @@ import { SetupMiddleware } from './setup';
 
 @Injectable()
 export class StaticFilesResolver implements OnModuleInit {
+  private readonly logger = new Logger(StaticFilesResolver.name);
+
   constructor(
     private readonly config: Config,
     private readonly adapterHost: HttpAdapterHost,
     private readonly check: SetupMiddleware
   ) {}
+
+  private sendStaticHtml(
+    res: Response,
+    filePath: string,
+    fallback: { title: string; description: string }
+  ) {
+    res.sendFile(filePath, err => {
+      if (!err) {
+        return;
+      }
+
+      const error = err as NodeJS.ErrnoException;
+      if (error.code && error.code !== 'ENOENT') {
+        this.logger.error(
+          `Failed to serve static file ${filePath}: ${error.message}`
+        );
+        res.status(500).end();
+        return;
+      }
+
+      this.logger.warn(
+        `Static file ${filePath} not found. Using built-in fallback page.`
+      );
+
+      res
+        .status(200)
+        .type('html')
+        .send(this.buildFallbackHtml(fallback.title, fallback.description));
+    });
+  }
+
+  private buildFallbackHtml(title: string, description: string) {
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>${title}</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f7f8fb;
+        color: #202124;
+        padding: 32px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #121212;
+          color: #e8eaed;
+        }
+      }
+
+      main {
+        max-width: 640px;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+      }
+
+      p {
+        font-size: 1rem;
+        line-height: 1.5;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>${title}</h1>
+      <p>${description}</p>
+    </main>
+  </body>
+</html>`;
+  }
 
   onModuleInit() {
     // in command line mode
@@ -65,12 +159,18 @@ export class StaticFilesResolver implements OnModuleInit {
       [basePath + '/admin', basePath + '/admin/*path'],
       this.check.use,
       (_req, res) => {
-        res.sendFile(
+        this.sendStaticHtml(
+          res,
           join(
             staticPath,
             'admin',
             env.selfhosted ? 'selfhost.html' : 'index.html'
-          )
+          ),
+          {
+            title: 'AFFiNE Admin',
+            description:
+              'AFFiNE admin static assets are missing. Please build the web assets and mount the `static/admin` directory.',
+          }
         );
       }
     );
@@ -114,13 +214,18 @@ export class StaticFilesResolver implements OnModuleInit {
           ua: req.headers['user-agent'] ?? undefined,
         });
 
-      return res.sendFile(
-        join(
-          staticPath,
-          mobile ? 'mobile' : '',
-          env.selfhosted ? 'selfhost.html' : 'index.html'
-        )
+      const scope = mobile ? 'AFFiNE Mobile' : 'AFFiNE';
+      const assetPath = join(
+        staticPath,
+        mobile ? 'mobile' : '',
+        env.selfhosted ? 'selfhost.html' : 'index.html'
       );
+
+      this.sendStaticHtml(res, assetPath, {
+        title: scope,
+        description:
+          'AFFiNE static assets are missing. Please build the web bundle and make the `static` directory available to the server.',
+      });
     });
     // END REGION
   }
