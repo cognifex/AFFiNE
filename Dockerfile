@@ -66,17 +66,12 @@ RUN apt-get update \
 
 # Reuse the same pnpm version without hitting the network at runtime.
 RUN corepack enable \
-  && corepack prepare pnpm@9.12.2 --activate \
-  && corepack prepare yarn@4.9.1 --activate
+  && corepack prepare pnpm@9.12.2 --activate
 COPY --from=builder ${PNPM_HOME} ${PNPM_HOME}
-COPY --from=builder /root/.local/share/corepack /root/.local/share/corepack
 
 # Copy the built application and its production dependencies.
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-lock.yaml ./
-COPY --from=builder /app/.yarnrc.yml ./
-COPY --from=builder /app/.yarn ./ ./.yarn
-COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/backend/server ./packages/backend/server
 COPY --from=builder /app/packages/backend/native ./packages/backend/native
