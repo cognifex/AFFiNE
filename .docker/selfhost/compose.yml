@@ -19,22 +19,22 @@ services:
       - .env
     environment:
       - REDIS_SERVER_HOST=redis
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
     restart: unless-stopped
 
   affine_migration:
-    image: ghcr.io/toeverything/affine:stable
+    image: ghcr.io/cognifex/affine:latest
     container_name: affine_migration_job
     volumes:
       - /c/Users/timhe/.affine/self-host/storage:/root/.affine/storage
       - /c/Users/timhe/.affine/self-host/config:/root/.affine/config
-    command: ["sh", "-c", "node ./scripts/self-host-predeploy.js"]
+    command: ["node", "./scripts/self-host-predeploy.js"]
     env_file:
       - .env
     environment:
       - REDIS_SERVER_HOST=redis
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
     depends_on:
       postgres:
@@ -60,13 +60,13 @@ services:
     volumes:
       - /c/Users/timhe/.affine/self-host/postgres/pgdata:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_DATABASE:-affine}
       POSTGRES_INITDB_ARGS: "--data-checksums"
       POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "${DB_USERNAME}", "-d", "${DB_DATABASE:-affine}"]
+      test: ["CMD", "pg_isready", "-U", "${DB_USERNAME:-postgres}", "-d", "${DB_DATABASE:-affine}"]
       interval: 10s
       timeout: 5s
       retries: 5

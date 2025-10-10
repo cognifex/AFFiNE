@@ -3,6 +3,10 @@ import { generateKeyPairSync } from 'node:crypto';
 import fs from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SERVER_PACKAGE_ROOT = path.resolve(__dirname, '..');
 
 const SELF_HOST_CONFIG_DIR = `${homedir()}/.affine/config`;
 
@@ -43,6 +47,7 @@ function runPredeployScript() {
   execSync('yarn predeploy', {
     encoding: 'utf-8',
     env: process.env,
+    cwd: SERVER_PACKAGE_ROOT,
     stdio: 'inherit',
   });
 }
@@ -57,6 +62,7 @@ function fixFailedMigrations() {
       execSync(`yarn prisma migrate resolve --rolled-back ${migration}`, {
         encoding: 'utf-8',
         env: process.env,
+        cwd: SERVER_PACKAGE_ROOT,
         stdio: 'pipe',
       });
       console.log(`migration [${migration}] has been rolled back.`);
