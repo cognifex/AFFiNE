@@ -35,12 +35,7 @@ services:
   affine_migration:
     image: ghcr.io/cognifex/affine:latest
     container_name: affine_migration_job
-    command: ['node', './scripts/self-host-predeploy.js']
-    env_file:
-      - .env
-    volumes:
-      - /c/Users/timhe/.affine/self-host/storage:/root/.affine/storage
-      - /c/Users/timhe/.affine/self-host/config:/root/.affine/config
+    command: ['sh', '-c', 'node ./scripts/self-host-predeploy.js']
     depends_on:
       postgres:
         condition: service_healthy
