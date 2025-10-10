@@ -4,7 +4,7 @@ services:
     image: ghcr.io/cognifex/affine:latest
     container_name: affine_server
     ports:
-      - "3010:3010"
+      - '3010:3010'
     healthcheck:
       test:
         - CMD-SHELL
@@ -28,28 +28,34 @@ services:
     environment:
       - AFFINE_SERVER_HOST=0.0.0.0
       - REDIS_SERVER_HOST=redis
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_DATABASE:-affine}
       - AFFINE_INDEXER_ENABLED=false
     restart: unless-stopped
 
   affine_migration:
-    image: ghcr.io/toeverything/affine:stable
+    image: ghcr.io/cognifex/affine:latest
     container_name: affine_migration_job
-    command: ["sh", "-c", "node ./scripts/self-host-predeploy.js"]
+    command: ['node', './scripts/self-host-predeploy.js']
+    env_file:
+      - .env
+    volumes:
+      - /c/Users/timhe/.affine/self-host/storage:/root/.affine/storage
+      - /c/Users/timhe/.affine/self-host/config:/root/.affine/config
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@postgres:5432/${DB_DATABASE:-affine}
+      - DATABASE_URL=postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_DATABASE:-affine}
       - REDIS_SERVER_HOST=redis
+      - AFFINE_INDEXER_ENABLED=false
 
   redis:
     image: redis:latest
     container_name: affine_redis
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,11 +65,18 @@ services:
     image: pgvector/pgvector:pg16
     container_name: affine_postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${DB_USERNAME:-postgres}
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - /c/Users/timhe/.affine/self-host/postgres/pgdata:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_DATABASE:-affine}
-      POSTGRES_INITDB_ARGS: "--data-checksums"
+      POSTGRES_INITDB_ARGS: '--data-checksums'
