@@ -4,7 +4,7 @@ services:
     image: ghcr.io/cognifex/affine:latest
     container_name: affine_server
     ports:
-      - "3010:3010"
+      - '3010:3010'
     healthcheck:
       test:
         - CMD-SHELL
@@ -35,7 +35,7 @@ services:
   affine_migration:
     image: ghcr.io/cognifex/affine:latest
     container_name: affine_migration_job
-    command: ["sh", "-c", "node ./scripts/self-host-predeploy.js"]
+    command: ['sh', '-c', 'node ./scripts/self-host-predeploy.js']
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
     image: redis:latest
     container_name: affine_redis
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -59,11 +59,18 @@ services:
     image: pgvector/pgvector:pg16
     container_name: affine_postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${DB_USERNAME:-postgres}
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
       - /c/Users/timhe/.affine/self-host/postgres/pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: ${DB_USERNAME}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_DATABASE:-affine}
-      POSTGRES_INITDB_ARGS: "--data-checksums"
+      POSTGRES_INITDB_ARGS: '--data-checksums'
