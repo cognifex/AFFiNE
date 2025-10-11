@@ -37,7 +37,7 @@ COPY . .
 RUN yarn install --immutable
 
 # Build both the frontend and backend so static assets end up in the server package.
-RUN yarn build
+RUN yarn affine build
 
 # Strip dev dependencies while keeping everything the server runtime needs.
 RUN yarn workspaces focus --all --production
